@@ -1,0 +1,30 @@
+{
+  "name": "back-end",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node dist/server.js",
+    "build": "tsc",
+    "dev": "cross-env NODE_ENV=development nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/server.ts",
+    "prod": "cross-env NODE_ENV=production nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/server.ts"
+  },
+  "keywords": [],
+  "author": "Marc Micky",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/mongoose": "^5.11.96",
+    "@types/node": "^22.9.0",
+    "nodemon": "^3.1.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "back-end": "file:",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "mongoose": "^8.8.1"
+  }
+}
