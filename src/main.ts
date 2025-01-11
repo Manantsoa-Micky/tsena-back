@@ -1,13 +1,11 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { Server } from 'http';
-import { userRoutes } from './interface/routes/userRoutes';
-import { errorHandler } from './interface/middleware/errorHandler';
-import { setupSwagger } from './interface/swagger';
-import { logger } from './infrastructure/logger';
-import { connectDB } from './infrastructure/mongoConnection';
-import { rabbitMQService } from './infrastructure/rabbitMQ/rabbitMQService';
-import { Schema } from 'mongoose';
+import { setupSwagger } from './common/swagger';
+import { errorHandler } from './common/errorHandler';
+import { connectDB } from './common/mongoConnection';
+import { logger } from './common/logger';
+import { userRoutes } from './modules/user/user.routes';
 
 dotenv.config();
 const app = express();
@@ -25,16 +23,6 @@ server = app.listen(PORT, () => {
   logger.info(`⚡ Server running on port: ${PORT}`);
 });
 
-const initializeRabbitMQServices = async () => {
-  try {
-    await rabbitMQService.init();
-    logger.info('RabbitMQ client initialized and listening for messages');
-  } catch (e) {
-    logger.info('Failed to initialize RabbitMQ services: ', e);
-  }
-};
-
-initializeRabbitMQServices().then();
 
 const exitHandler = () => {
   if (server) {
