@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { setupSwagger } from './common/swagger';
-import errorHandler from './common/errorHandler';
+import errorHandler from './middleware/errorHandler';
 import userRoutes from './modules/user/user.routes';
 
 dotenv.config();

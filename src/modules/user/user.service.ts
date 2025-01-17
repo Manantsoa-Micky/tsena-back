@@ -1,5 +1,4 @@
-import { TUser } from './types';
-import { IUser } from './user.model';
+import { TUser, IUser } from './types';
 import UserRepository from './user.repository';
 
 class UserService {

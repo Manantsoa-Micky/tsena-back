@@ -13,12 +13,12 @@ class BaseRepository<U, T extends Document> {
       await newData.save({ session });
 
       await session.commitTransaction();
-      session.endSession();
+      await session.endSession();
 
       return newData;
     } catch (error) {
       await session.abortTransaction();
-      session.endSession();
+      await session.endSession();
       logger.error(error);
       throw error;
     }

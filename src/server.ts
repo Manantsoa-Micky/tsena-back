@@ -1,5 +1,5 @@
 import { Server } from 'http';
-import { connectDB } from './common/mongoConnection';
+import { connectDB } from './core/mongoConnection';
 import { logger } from './common/logger';
 import app from './app';
 
