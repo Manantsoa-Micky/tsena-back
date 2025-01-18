@@ -3,9 +3,6 @@ import { Express } from 'express';
 import { logger } from '../common/logger';
 
 export const setupLogging = (app: Express): void => {
-	// Create a custom morgan token for request ID
-	morgan.token('id', (req: any) => req.id);
-
 	// Create custom morgan format
 	const morganFormat = process.env.NODE_ENV === 'development' 
 		? 'dev' 
@@ -14,7 +11,9 @@ export const setupLogging = (app: Express): void => {
 	// Use morgan with Winston logger
 	app.use(morgan(morganFormat, {
 		stream: {
-			write: (message: string) => logger.info(message.trim())
+			write: (message: string) => {
+				logger.info(message.trim());
+			}
 		}
 	}));
 };
