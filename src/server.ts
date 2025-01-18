@@ -2,8 +2,9 @@ import { Server } from 'http';
 import { connectDB } from './core/mongoConnection';
 import { logger } from './common/logger';
 import app from './app';
+import { config } from './config/app.config';
 
-const PORT = process.env.PORT || 3000;
+const PORT = config.server.port;
 let server: Server;
 
 const startServer = async () => {
