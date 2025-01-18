@@ -24,7 +24,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // API routes
-app.use(config.api.prefix, userRoutes);
+app.use(`${config.api.prefix}/user`, userRoutes);
 
 // Swagger documentation
 setupSwagger(app);
