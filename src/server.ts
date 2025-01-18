@@ -2,7 +2,7 @@ import { Server } from 'http';
 import { connectDB } from './core/mongoConnection';
 import { logger } from './common/logger';
 import app from './app';
-import { config } from './config/app.config';
+import { config } from './common/configs/app.config';
 
 const PORT = config.server.port;
 let server: Server;

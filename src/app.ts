@@ -5,7 +5,7 @@ import errorHandler from './middleware/errorHandler';
 import userRoutes from './modules/user/user.routes';
 import { setupSecurityMiddleware } from './middleware/security.middleware';
 import { setupLogging } from './middleware/logging.middleware';
-import { config } from './config/app.config';
+import { config } from './common/configs/app.config';
 import { logger } from './common/logger';
 
 // Load environment variables
