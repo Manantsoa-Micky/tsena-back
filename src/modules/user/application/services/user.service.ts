@@ -1,19 +1,24 @@
-import { IUser, TUser } from './infrastructure/types/userTypes';
-import UserRepository from '@user/infrastructure/mongodb/repositories/user.repository';
+import { IUser } from '../../infrastructure/types/userTypes';
+import { GetAllUsers } from '@user/application/use-cases/queries/get-all-users.query';
+import { TPagination } from '@_shared/types/pagination';
+
+export interface IQueryHandler<T> {
+  execute(query: unknown): Promise<T[]>;
+}
 
 class UserService {
-  private userRepository: UserRepository;
+  private query: IQueryHandler<IUser>;
 
   constructor() {
-    this.userRepository = new UserRepository();
+    this.query = new GetAllUsers();
   }
 
-  public async createUser(user: TUser): Promise<IUser> {
-    return await this.userRepository.create(user);
-  }
+  // public async createUser(user: TUser): Promise<IUser> {
+  //   return await this.userRepository.create(user);
+  // }
 
-  public async findAllUsers(): Promise<IUser[]> {
-    return await this.userRepository.findAllAndPaginate(1, 10);
+  public async findAllUsers(params: TPagination): Promise<IUser[]> {
+    return await this.query.execute(params);
   }
 }
 

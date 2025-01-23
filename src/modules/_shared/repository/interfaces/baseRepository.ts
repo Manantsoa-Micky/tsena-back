@@ -1,7 +1,9 @@
+import { TPagination } from '@_shared/types/pagination';
+
 export interface IBaseRepository<U, T> {
   create(data: U): Promise<T>;
 
-  findAllAndPaginate(page: number, limit: number): Promise<T[]>;
+  findAllAndPaginate(pagination: TPagination): Promise<T[]>;
 
   findOne(id: string): Promise<T>;
 

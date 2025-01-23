@@ -1,6 +1,7 @@
 import mongoose, { Document, Model, PipelineStage } from 'mongoose';
-import { logger } from '../../common/logger';
-import { IBaseRepository } from './repository/interfaces/baseRepository';
+import { logger } from '../../../common/logger';
+import { IBaseRepository } from './interfaces/baseRepository';
+import { TPagination } from '@_shared/types/pagination';
 
 class BaseRepository<U, T extends Document> implements IBaseRepository<U, T> {
   constructor(private model: Model<T>) {}
@@ -10,7 +11,7 @@ class BaseRepository<U, T extends Document> implements IBaseRepository<U, T> {
     session.startTransaction();
 
     try {
-      const newData = new this.model(data) as unknown as T;
+      const newData = new this.model(data) as T;
       await newData.save({ session });
 
       await session.commitTransaction();
@@ -25,8 +26,8 @@ class BaseRepository<U, T extends Document> implements IBaseRepository<U, T> {
     }
   }
 
-  findAllAndPaginate(page: number, limit: number): Promise<T[]> {
-    const skip = (page - 1) * limit;
+  findAllAndPaginate(pagination: TPagination): Promise<T[]> {
+    const skip = (pagination.page - 1) * pagination.limit;
     const pipeline: PipelineStage[] = [
       {
         $match: {},
@@ -35,7 +36,7 @@ class BaseRepository<U, T extends Document> implements IBaseRepository<U, T> {
         $skip: skip,
       },
       {
-        $limit: limit,
+        $limit: pagination.limit,
       },
     ];
     return this.model.aggregate(pipeline);

@@ -1,5 +1,5 @@
 import { NextFunction } from 'express-serve-static-core';
-import UserService from '../../user.service';
+import UserService from '../../../application/services/user.service';
 import { Request, Response } from 'express';
 import { TApiResponse } from '@_shared/types/apiResponse';
 
