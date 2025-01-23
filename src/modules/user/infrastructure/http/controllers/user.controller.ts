@@ -1,15 +1,11 @@
 import { NextFunction } from 'express-serve-static-core';
-import UserService from './user.service';
+import UserService from '../../user.service';
 import { Request, Response } from 'express';
-
-type TApiResponse = {
-  status: number;
-  message: string;
-  data?: Record<string, unknown> | Record<string, unknown>[];
-};
+import { TApiResponse } from '@_shared/types/apiResponse';
 
 class UserController {
   private userService: UserService;
+
   constructor() {
     this.userService = new UserService();
   }
@@ -31,6 +27,7 @@ class UserController {
       next(err);
     }
   }
+
   public getUsers = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const users = this.userService.findAllUsers();

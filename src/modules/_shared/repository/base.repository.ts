@@ -1,9 +1,10 @@
-import { Document, Model, PipelineStage } from 'mongoose';
-import mongoose from 'mongoose';
-import { logger } from './logger';
+import mongoose, { Document, Model, PipelineStage } from 'mongoose';
+import { logger } from '../../common/logger';
+import { IBaseRepository } from './repository/interfaces/baseRepository';
 
-class BaseRepository<U, T extends Document> {
+class BaseRepository<U, T extends Document> implements IBaseRepository<U, T> {
   constructor(private model: Model<T>) {}
+
   async create(data: U): Promise<T> {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -23,6 +24,7 @@ class BaseRepository<U, T extends Document> {
       throw error;
     }
   }
+
   findAllAndPaginate(page: number, limit: number): Promise<T[]> {
     const skip = (page - 1) * limit;
     const pipeline: PipelineStage[] = [
@@ -38,13 +40,16 @@ class BaseRepository<U, T extends Document> {
     ];
     return this.model.aggregate(pipeline);
   }
+
   findOne(id: string): Promise<T> {
     throw new Error('Method not implemented.');
   }
+
   update(id: string, data: Partial<U>): Promise<T> {
     throw new Error('Method not implemented.');
   }
-  delete(id: string): Promise<T> {
+
+  delete(id: string): Promise<void> {
     throw new Error('Method not implemented.');
   }
 }

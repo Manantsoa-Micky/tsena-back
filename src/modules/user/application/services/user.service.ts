@@ -1,5 +1,5 @@
-import { TUser, IUser } from './types';
-import UserRepository from './user.repository';
+import { IUser, TUser } from './infrastructure/types/userTypes';
+import UserRepository from '@user/infrastructure/mongodb/repositories/user.repository';
 
 class UserService {
   private userRepository: UserRepository;
