@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "main": "main.ts",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development nodemon -r tsconfig-paths/register src/server.ts",
+    "dev": "cross-env NODE_ENV=development nodemon -r tsconfig-paths/register src/index.ts",
     "build": "rm -rf build/ && tsc -p .",
-    "start": "cross-env NODE_ENV=production node -r tsconfig-paths/register build/server.js"
+    "start": "cross-env NODE_ENV=production node -r tsconfig-paths/register build/index.js"
   },
   "keywords": [],
   "author": "",
@@ -32,6 +32,7 @@
     "mongoose": "^8.8.1",
     "morgan": "^1.10.0",
     "nodemon": "^3.1.7",
+    "reflect-metadata": "^0.2.2",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "ts-node": "^10.9.2",
@@ -43,6 +44,7 @@
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
+    "@types/hpp": "^0.2.6",
     "@types/morgan": "^1.9.9",
     "@types/uuid": "^10.0.0",
     "cross-env": "^7.0.3",

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import { logger } from './common/logger';
-import { config } from './common/configs/app.config';
+import { logger } from './logger';
+import { config } from './constants/app.config';
 
 const mongooseOptions = {
   serverSelectionTimeoutMS: 5000,

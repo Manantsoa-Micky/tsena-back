@@ -1,16 +1,13 @@
-import { Router } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
 import UserController from '../controllers/user.controller';
-import validationMiddleware from '../../../../../middlewares/validationMiddleware';
-import { CreateUserDto } from '../dtos/CreateUserdto';
+import { routesV1 } from '@common/constants/app.routes';
 
-const router = Router();
-const userController = new UserController();
-
-router.post(
-  '/register',
-  validationMiddleware(CreateUserDto),
-  (req, res, next) => userController.createUser(req, res, next),
-);
-router.get('/get-all', userController.getUsers);
-
-export default router;
+export default (router: Router): void => {
+  router.get(
+    `${routesV1.auth.register}`,
+    (req: Request, res: Response, next: NextFunction) => {
+      const userController = new UserController();
+      userController.getUsers(req, res, next);
+    },
+  );
+};

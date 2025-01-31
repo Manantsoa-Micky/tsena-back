@@ -1,97 +1,75 @@
-import express, { NextFunction, Request, Response } from 'express';
+import 'reflect-metadata';
+import { Express } from 'express';
 import { Server } from 'http';
-import { setupSwagger } from '@common/swagger';
-import {
-  errorHandler,
-  requestTimeout,
-  setupLogging,
-  setupSecurityMiddleware,
-} from '@common/middlewares';
 import { logger } from '@common/logger';
-import { bootstrapCommandQuery } from '@_shared/bootstrap';
-import userRoutes from '@user/infrastructure/http/routes/user.routes';
-import { ServerConfig } from './config/server.config';
 import { AppServer, ServerError } from './types/server.types';
 import { connectDB } from '@common/mongoConnection';
+import { EventBus, SystemEvents } from '@common/events/EventBus';
+import setupApp from '@common/configs/app';
+import { bootstrapCommandQuery } from '@_shared/bootstrap';
+import { config } from '@common/constants/app.config';
+import mongoose from 'mongoose';
 
-class Application implements AppServer {
-  public app: express.Express;
+export class Application implements AppServer {
+  public app!: Express;
   public server: Server | null = null;
+  private isShuttingDown: boolean = false;
+  constructor(private readonly eventBus: EventBus) {}
 
-  constructor() {
-    this.app = express();
-    this.setupMiddlewares();
-    this.setupRoutes();
-    this.setupErrorHandling();
-    this.setupProcessHandlers();
-  }
-
-  private setupMiddlewares(): void {
-    setupLogging(this.app);
-    setupSecurityMiddleware(this.app);
-    this.app.use(requestTimeout({ timeout: ServerConfig.requestTimeout }));
-    this.app.use(express.json());
-    this.app.use(express.urlencoded({ extended: true }));
-    setupSwagger(this.app);
-  }
-
-  private setupRoutes(): void {
-    this.app.get('/health', (req: Request, res: Response) => {
-      res.status(200).json({
-        status: 'ok',
-        environment: ServerConfig.nodeEnv,
-        timestamp: new Date().toISOString(),
-      });
-    });
-    this.app.use('/user', userRoutes);
-  }
-
-  private setupErrorHandling(): void {
-    this.app.use(
-      (err: Error, req: Request, res: Response, next: NextFunction) => {
-        errorHandler(err, req, res, next);
-      },
-    );
-  }
-
-  private setupProcessHandlers(): void {
-    process.on('SIGTERM', () => this.shutdown());
-    process.on('SIGINT', () => this.shutdown());
-    process.on('unhandledRejection', (reason: Error) => {
-      logger.error('Unhandled Rejection:', reason);
-    });
-    process.on('uncaughtException', (error: Error) => {
-      logger.error('Uncaught Exception:', error);
-      this.shutdown();
-    });
+  public async initialize(): Promise<void> {
+    try {
+      this.app = setupApp();
+      this.setupEventHandler();
+      this.setupProcessHandler();
+      await bootstrapCommandQuery();
+      await connectDB();
+    } catch (error) {
+      logger.error('Failed to initialize application:', error);
+      throw new ServerError('Failed to initialize application', 'INIT_FAILED');
+    }
   }
 
   public async start(port: number): Promise<void> {
     try {
-      await bootstrapCommandQuery();
-      await connectDB();
+      this.eventBus.emit(SystemEvents.SERVER_STARTING);
+
       this.server = this.app.listen(port, () => {
-        logger.info(
-          `Server starting in ${ServerConfig.nodeEnv} mode on port ${port}`,
-        );
+        this.eventBus.emit(SystemEvents.SERVER_STARTED, port);
+      });
+
+      this.server.on('error', (error: Error) => {
+        this.eventBus.emit(SystemEvents.UNHANDLED_ERROR, error);
       });
     } catch (error) {
       const serverError = new ServerError(
         'Failed to start application',
         'SERVER_START_FAILED',
       );
+      this.eventBus.emit(SystemEvents.UNHANDLED_ERROR, serverError);
       logger.error(serverError.message, error);
       throw serverError;
     }
   }
 
   public async shutdown(): Promise<void> {
-    if (this.server) {
-      logger.info('Received kill signal, shutting down gracefully');
+    if (this.isShuttingDown) {
+      logger.info('Shutdown already in progress');
+      return;
+    }
 
-      try {
+    this.isShuttingDown = true;
+    this.eventBus.emit(SystemEvents.SERVER_SHUTDOWN);
+    logger.info('Received kill signal, shutting down gracefully');
+
+    try {
+      if (this.server) {
         await new Promise<void>((resolve, reject) => {
-          this.server?.close(() => {
+          this.server?.close((err) => {
+            if (err) {
+              logger.error('Error closing server:', err);
+              reject(err);
+              return;
+            }
             logger.info('Closed out remaining connections');
             resolve();
           });
@@ -100,19 +78,56 @@ class Application implements AppServer {
             reject(
               new ServerError('Server shutdown timeout', 'SHUTDOWN_TIMEOUT'),
             );
-          }, ServerConfig.gracefulShutdownTimeout);
+          }, config.server.gracefulShutdownTimeout);
         });
-
-        process.exit(0);
-      } catch (error) {
-        logger.error(
-          'Could not close connections in time, forcefully shutting down',
-        );
-        process.exit(1);
       }
+
+      try {
+        await mongoose.disconnect();
+        logger.info('Disconnected from database');
+      } catch (error) {
+        logger.error('Error disconnecting from database:', error);
+      }
+
+      process.exit(0);
+    } catch (error) {
+      logger.error(
+        'Could not close connections in time, forcefully shutting down',
+      );
+      process.exit(1);
     }
   }
-}
 
-const application = new Application();
-export { application as default };
+  public setupProcessHandler = (): void => {
+    process.on('SIGTERM', () => this.shutdown());
+    process.on('SIGINT', () => this.shutdown());
+    process.on('unhandledRejection', (reason: Error) => {
+      this.eventBus.emit(SystemEvents.UNHANDLED_ERROR, reason);
+      logger.error('Unhandled Rejection:', reason);
+    });
+    process.on('uncaughtException', (error: Error) => {
+      this.eventBus.emit(SystemEvents.UNHANDLED_ERROR, error);
+      logger.error('Uncaught Exception:', error);
+      this.shutdown();
+    });
+  };
+
+  public setupEventHandler = (): void => {
+    this.eventBus.on(SystemEvents.SERVER_STARTED, (port: number) => {
+      logger.info(
+        `Server starting in ${config.server.nodeEnv} mode on port ${port}`,
+      );
+    });
+
+    this.eventBus.on(SystemEvents.SERVER_SHUTDOWN, () => {
+      logger.info('Server shutdown event received');
+    });
+
+    this.eventBus.on(SystemEvents.UNHANDLED_ERROR, (error: Error) => {
+      logger.error('Unhandled error occurred:', error);
+      if (!this.isShuttingDown) {
+        this.shutdown();
+      }
+    });
+  };
+}

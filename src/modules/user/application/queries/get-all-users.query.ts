@@ -1,12 +1,15 @@
-import { TPagination } from '@_shared/types/pagination';
-import { IQueryHandler } from '@user/application/services/user.service';
-import { IUserRepository } from '@user/core/interfaces/userRepository';
-import { IUser } from '@user/infrastructure/types/userTypes';
+import {
+  GetAllUserResult,
+  GetAllUsersHandler,
+  GetAllUsersQuery,
+} from '@user/core/queries/get-user.query';
+import { logger } from '@common/logger';
 
-export class GetAllUsers implements IQueryHandler<IUser> {
-  constructor(private readonly userRepository: IUserRepository) {}
-
-  async execute(query: TPagination): Promise<IUser[]> {
-    return this.userRepository.findAllAndPaginate(query);
+export class GetAllUsersQueryHandler implements GetAllUsersHandler {
+  execute(query: GetAllUsersQuery): Promise<GetAllUserResult> {
+    logger.info('user list handled');
+    return Promise.resolve({
+      users: [],
+    });
   }
 }

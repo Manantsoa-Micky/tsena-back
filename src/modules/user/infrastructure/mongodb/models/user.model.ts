@@ -1,14 +1,20 @@
 import mongoose, { Schema } from 'mongoose';
-import { IUser } from '../../types/userTypes';
+import { User } from '@user/core/entities/user.entity';
 
-const userSchema: Schema = new Schema<IUser>({
+const userSchema: Schema = new Schema<User>({
   email: { type: String, unique: true, required: true },
   password: { type: String, required: true },
   firstname: { type: String, required: true },
   lastname: { type: String, required: true },
   phoneNumber: { type: String, required: true },
-  address: { type: String, required: true },
+  address: {
+    city: { type: String, required: false },
+    country: { type: String, required: false },
+    postalCode: { type: String, required: false },
+  },
+  isEmailVerified: { type: Boolean, required: false },
+  isActive: { type: Boolean, required: false },
 });
 
-const UserModel = mongoose.model<IUser>('User', userSchema);
-export { UserModel, IUser };
+const UserModel = mongoose.model<User>('User', userSchema);
+export { UserModel, User };
