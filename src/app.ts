@@ -1,87 +1,118 @@
-// Third-party imports
-import express from 'express';
-import dotenv from 'dotenv';
-
-// Application imports
-import { setupSwagger } from './common/swagger';
-import { setupUserModule } from '@user/infrastructure/http/user.module';
+import express, { NextFunction, Request, Response } from 'express';
+import { Server } from 'http';
+import { setupSwagger } from '@common/swagger';
 import {
   errorHandler,
   requestTimeout,
   setupLogging,
   setupSecurityMiddleware,
-} from './middlewares';
-import { logger } from './common/logger';
-import { container } from './container';
+} from '@common/middlewares';
+import { logger } from '@common/logger';
+import { bootstrapCommandQuery } from '@_shared/bootstrap';
+import userRoutes from '@user/infrastructure/http/routes/user.routes';
+import { ServerConfig } from './config/server.config';
+import { AppServer, ServerError } from './types/server.types';
+import { connectDB } from '@common/mongoConnection';
 
-// Load environment variables
-dotenv.config();
+class Application implements AppServer {
+  public app: express.Express;
+  public server: Server | null = null;
 
-const app = express();
-let server: any;
-
-// Setup logging first to capture all requests
-setupLogging(app);
-
-// Security middlewares
-setupSecurityMiddleware(app);
-app.use(requestTimeout({ timeout: 30000 }));
-
-// Body parser
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
-
-// Setup modules with dependency injection
-setupUserModule(app, container);
-
-// Swagger documentation
-setupSwagger(app);
-
-// Error handling middlewares
-app.use(errorHandler);
-
-// Graceful shutdown handling
-const gracefulShutdown = () => {
-  if (server) {
-    logger.info('Received kill signal, shutting down gracefully');
-    server.close(() => {
-      logger.info('Closed out remaining connections');
-      process.exit(0);
-    });
-
-    // Force shutdown after 10 seconds
-    setTimeout(() => {
-      logger.error(
-        'Could not close connections in time, forcefully shutting down',
-      );
-      process.exit(1);
-    }, 10000);
+  constructor() {
+    this.app = express();
+    this.setupMiddlewares();
+    this.setupRoutes();
+    this.setupErrorHandling();
+    this.setupProcessHandlers();
   }
-};
 
-// Handle various shutdown signals
-process.on('SIGTERM', gracefulShutdown);
-process.on('SIGINT', gracefulShutdown);
+  private setupMiddlewares(): void {
+    setupLogging(this.app);
+    setupSecurityMiddleware(this.app);
+    this.app.use(requestTimeout({ timeout: ServerConfig.requestTimeout }));
+    this.app.use(express.json());
+    this.app.use(express.urlencoded({ extended: true }));
+    setupSwagger(this.app);
+  }
 
-// Unhandled rejection handling
-process.on('unhandledRejection', (reason: Error) => {
-  logger.error('Unhandled Rejection:', reason);
-  // Don't exit the process, but log the error
-});
+  private setupRoutes(): void {
+    this.app.get('/health', (req: Request, res: Response) => {
+      res.status(200).json({
+        status: 'ok',
+        environment: ServerConfig.nodeEnv,
+        timestamp: new Date().toISOString(),
+      });
+    });
+    this.app.use('/user', userRoutes);
+  }
 
-process.on('uncaughtException', (error: Error) => {
-  logger.error('Uncaught Exception:', error);
-  // Exit the process as uncaught exceptions are serious
-  gracefulShutdown();
-});
+  private setupErrorHandling(): void {
+    this.app.use(
+      (err: Error, req: Request, res: Response, next: NextFunction) => {
+        errorHandler(err, req, res, next);
+      },
+    );
+  }
 
-// Log application startup
-logger.info(`Server starting in ${process.env.NODE_ENV} mode`);
+  private setupProcessHandlers(): void {
+    process.on('SIGTERM', () => this.shutdown());
+    process.on('SIGINT', () => this.shutdown());
+    process.on('unhandledRejection', (reason: Error) => {
+      logger.error('Unhandled Rejection:', reason);
+    });
+    process.on('uncaughtException', (error: Error) => {
+      logger.error('Uncaught Exception:', error);
+      this.shutdown();
+    });
+  }
 
-// Export both app and server for testing purposes
-export { app as default, server };
+  public async start(port: number): Promise<void> {
+    try {
+      await bootstrapCommandQuery();
+      await connectDB();
+      this.server = this.app.listen(port, () => {
+        logger.info(
+          `Server starting in ${ServerConfig.nodeEnv} mode on port ${port}`,
+        );
+      });
+    } catch (error) {
+      const serverError = new ServerError(
+        'Failed to start application',
+        'SERVER_START_FAILED',
+      );
+      logger.error(serverError.message, error);
+      throw serverError;
+    }
+  }
+
+  public async shutdown(): Promise<void> {
+    if (this.server) {
+      logger.info('Received kill signal, shutting down gracefully');
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          this.server?.close(() => {
+            logger.info('Closed out remaining connections');
+            resolve();
+          });
+
+          setTimeout(() => {
+            reject(
+              new ServerError('Server shutdown timeout', 'SHUTDOWN_TIMEOUT'),
+            );
+          }, ServerConfig.gracefulShutdownTimeout);
+        });
+
+        process.exit(0);
+      } catch (error) {
+        logger.error(
+          'Could not close connections in time, forcefully shutting down',
+        );
+        process.exit(1);
+      }
+    }
+  }
+}
+
+const application = new Application();
+export { application as default };

@@ -3,8 +3,6 @@ import { logger } from './common/logger';
 import { config } from './common/configs/app.config';
 
 const mongooseOptions = {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
   serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
   family: 4,
@@ -13,10 +11,10 @@ const mongooseOptions = {
 
 export const connectDB = async () => {
   const URI = config.server.mongoURI;
-  
+
   try {
     logger.info('Connecting to database...');
-    
+
     mongoose.connection.on('connected', () => {
       logger.info('⚡ MongoDB connected successfully');
     });
@@ -43,7 +41,6 @@ export const connectDB = async () => {
     await mongoose.connect(URI, mongooseOptions);
   } catch (error) {
     logger.error('Failed to connect to MongoDB:', error);
-    // Don't exit immediately, allow for retry logic in server.ts
     throw error;
   }
 };

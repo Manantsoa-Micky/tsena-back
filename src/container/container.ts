@@ -2,7 +2,7 @@ import UserRepository from '@user/infrastructure/mongodb/repositories/user.repos
 import UserService from '@user/application/services/user.service';
 import UserController from '@user/infrastructure/http/controllers/user.controller';
 
-class Container {
+export class Container {
   private services: Map<string, any>;
 
   constructor() {
