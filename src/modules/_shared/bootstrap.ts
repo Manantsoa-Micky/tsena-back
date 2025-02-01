@@ -18,6 +18,9 @@ export async function bootstrapCommandQuery() {
   const createUserCommandHandler = new CreateUserCommandHandler(userRepository);
   const registerUserCommandHandler = new RegisterUserCommandHandler(mediator);
 
+  /**
+   * COMMANDS
+   */
   commandBus.register<RegisterUserCommand>(
     Commands.REGISTER_USER,
     registerUserCommandHandler,
@@ -27,5 +30,12 @@ export async function bootstrapCommandQuery() {
     createUserCommandHandler,
   );
 
+  /**
+   * QUERIES
+   */
+
+  /**
+   * SHARED
+   */
   mediator.register(Commands.CREATE_USER, createUserCommandHandler);
 }

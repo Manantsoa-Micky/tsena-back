@@ -1,8 +1,7 @@
-import { HashComparer } from '@auth/application/interfaces/cryptography/HashComparer';
-import { HashGenerator } from '@auth/application/interfaces/cryptography/HashGenerator';
 import * as bcrypt from 'bcryptjs';
+import { HashInterface } from '@auth/application/interfaces/cryptography/hash.interface';
 
-export class BcryptAdapter implements HashGenerator, HashComparer {
+export class BcryptAdapter implements HashInterface {
   constructor(private readonly salt: number) {}
 
   async hash(value: string): Promise<string> {
